@@ -28,7 +28,8 @@ def uniform_sampler(bounds: dict, n_drones: int):
 
 
 def sample_near_configuration(q1: list, maximum_connection_dist: float, bounds: dict):
-    q2 = np.empty_like(q1, dtype=np.float32)
+    q1 = np.asarray(q1, dtype=np.float32)
+    q2 = np.empty_like(q1)
 
     lower = np.array([bounds["x"][0], bounds["y"][0], bounds["z"][0]])
 
@@ -59,14 +60,19 @@ def bridge_sampling(sim: MultiDrone, bounds:dict, n_drones: int, maximum_connect
     #sample uniformly at random from the set of all configurations within maximum_connection_dist from q1
     q2 = sample_near_configuration(q1, maximum_connection_dist, bounds)
 
-    if sim.is_valid(q1):
+    if q2 is None:
+        return None
+
+    if sim.is_valid(q1) and not sim.is_valid(q2): #sampling near obstacle
         return q1
-    elif sim.is_valid(q2):
+    elif sim.is_valid(q2) and not sim.is_valid(q1): #sampling near obstacle
         return q2
-    else: #sampling inside passage
+    elif not sim.is_valid(q1) and not sim.is_valid(q2): #sampling inside passage
         qm = 0.5*(q1+q2) 
         if sim.is_valid(qm):
             return qm
+    else:
+        return None
 
 
 """def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
@@ -157,6 +163,9 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
             sample_config = goal_sampler(sim)
         else: 
             return ValueError("Need to provide a valid sampling strategy.")
+
+        if sample_config is None: 
+            continue
 
         #find id of nearest node in existing tree
         nearest_id = min(range(len(nodes)), key=lambda i: np.linalg.norm(nodes[i] - sample_config))
