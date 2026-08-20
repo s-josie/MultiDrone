@@ -1,6 +1,7 @@
 import numpy as np
 from multi_drone import MultiDrone
 import time
+import yaml
 
 def initialise(n_drones: int, env_file: str = "environment.yaml"):
     # Initialize the MultiDrone environment
@@ -14,24 +15,100 @@ def initialise(n_drones: int, env_file: str = "environment.yaml"):
     return sim, initial_configuration, goal_positions
 
 
-def my_planner(sim: MultiDrone, time_limit: int = 20):
+def uniform_sampler(bounds: dict):
+
+    rng = np.random.default_rng()
+
+    low = [bounds["x"][0], bounds["y"][0], bounds["z"][0]]
+    high = [bounds["x"][1], bounds["y"][1], bounds["z"][1]]
+    
+    point = rng.uniform(low, high)
+
+    return point
+
+
+"""def sample_near_obstacles(): #TODO
+
+
+
+
+    return point
+
+def expansive_space_sampler():
+
+
+    return point
+
+
+def multi_arm_bandit_sampler():
+
+    return point"""
+
+
+def collision_free_checker(point: tuple[float, float, float], obstacles: dict): #TODO
+
+    if point :
+        return True
+
+    else:
+        return False
+
+
+def breadth_first_search(nodes, roadmap): #TODO
+
+    
+
+    return None
+
+def my_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_file: str = "environment.yaml"):
 
     #initialise
     print("starting clock")
     start_time = time.time()
-    path = None
+    nodes = []
+    roadmap = []
 
-    while time.time() - start_time < time_limit and path == None:
+    with open(env_file, "r") as f:
+        config = yaml.safe_load(f)
 
-        #sample 
+    while time.time() - start_time < time_limit:
 
-        #connect
+        new_points = 0 #initialise 
 
+        while new_points < points_to_add:
+
+            #sample a configuration
+            configuration = uniform_sampler(config["bounds"])
+
+            #connect 
+            if collision_free_checker(config["obstacles"]): #no collision
+                #add configuration to roadmap
+                nodes.append(configuration)
+                new_points += 1
+                
+                #connect configuration to existing vertices in G using valid edges
+                #
+                for node in nodes:
+
+                    if 
+
+                    #check <= 30% distance of workspace between nodes
+                    dist = 
+                    if dist > 30: 
+                        continue
+
+                    #check valid path or not
+                    if sim.motion_valid(start, end):
+                        roadmap[i].append(node) #TODO
+                
         #search g for path
-        if
+        path = breadth_first_search(nodes, roadmap)
+        if path != None:
+            return path
+
+    return None
 
 
-    return path
 
 # Once the MultiDrone environment is initialized,
 # you can use it within a sampling-based motion planner, e.g.
