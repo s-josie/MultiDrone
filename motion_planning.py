@@ -27,25 +27,63 @@ def uniform_sampler(bounds: dict, n_drones: int):
     return point
 
 
-"""def sample_near_obstacles(): #TODO
+def sample_near_configuration(q1: list, maximum_connection_dist: float, bounds: dict):
+    q2 = np.empty_like(q1, dtype=np.float32)
+
+    lower = np.array([bounds["x"][0], bounds["y"][0], bounds["z"][0]])
+
+    upper = np.array([bounds["x"][1], bounds["y"][1], bounds["z"][1]])
+
+    for i in range(q1.shape[0]):
+
+        #random direction in 3D, using gaussian for sphere
+        direction = np.random.normal(size=3)
+        direction /= np.linalg.norm(direction) #normalise to get unit vector
+
+        #sample random uniform distance within sphere according to volumne TODO
+        distance = (maximum_connection_dist* np.random.random() ** (1 / 3))
+
+        q2[i] = q1[i] + distance * direction #vector addition by component
+
+    # Reject if outside workspace
+    if np.any(q2 < lower) or np.any(q2 > upper):
+        return None
+
+    return q2
 
 
-    return point
+def bridge_sampling(sim: MultiDrone, bounds:dict, n_drones: int, maximum_connection_dist: float):
 
-def expansive_space_sampler():
+    q1 = uniform_sampler(bounds, n_drones)
+
+    #sample uniformly at random from the set of all configurations within maximum_connection_dist from q1
+    q2 = sample_near_configuration(q1, maximum_connection_dist, bounds)
+
+    if sim.is_valid(q1):
+        return q1
+    elif sim.is_valid(q2):
+        return q2
+    else: #sampling inside passage
+        qm = 0.5*(q1+q2) 
+        if sim.is_valid(qm):
+            return qm
 
 
-    return point
+"""def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
+
+    return None"""
 
 
-def multi_arm_bandit_sampler():
+def goal_sampler(sim: MultiDrone):
 
-    return point
-    
-    
-def goal_sampler():
+    return sim.goal_positions.copy()
+
+"""def multi_arm_bandit_sampler(sampler_pics: list[bool]):
 
     return point"""
+    
+    
+
 
 
 #Graph search functions:
@@ -84,9 +122,89 @@ def breadth_first_search(nodes: list, roadmap: list, sim: MultiDrone):
     return None
 
 
+def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: str = "environment.yaml"):
 
-#my planner:
-def my_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_file: str = "environment.yaml"):
+    # initialise
+    print("starting clock")
+    start_time = time.time()
+
+    with open(env_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    # Maximum distance that a new node can be from its parent
+    workspace_diagonal = np.linalg.norm(
+        np.array([
+            config["bounds"]["x"][1] - config["bounds"]["x"][0],
+            config["bounds"]["y"][1] - config["bounds"]["y"][0],
+            config["bounds"]["z"][1] - config["bounds"]["z"][0]
+        ])
+    )
+
+    max_connection_distance = 0.3 * workspace_diagonal
+
+    #set the initial configuration as the root node
+    nodes = [sim.initial_configuration.copy()]
+    parent = {0: None}
+
+    while time.time() - start_time < time_limit:
+
+        #sample a configuration according to strategy TODO try changing strategies
+        if sampler == "uniform":
+            sample_config = uniform_sampler(config["bounds"], sim.N)
+        elif sampler == "bridge":
+            sample_config = bridge_sampling(sim, config["bounds"], sim.N, max_connection_distance)
+        elif sampler == "goal":
+            sample_config = goal_sampler(sim)
+        else: 
+            return ValueError("Need to provide a valid sampling strategy.")
+
+        #find id of nearest node in existing tree
+        nearest_id = min(range(len(nodes)), key=lambda i: np.linalg.norm(nodes[i] - sample_config))
+
+        nearest_node = nodes[nearest_id]
+
+        #find distance between nearest node and sample_config
+        direction = sample_config - nearest_node
+        distance = np.linalg.norm(direction)
+
+        #avoid division by zero
+        if distance < 1e-6:
+            continue
+
+        #limit the extension to max_connection_distance
+        step = min(distance, max_connection_distance)
+
+        new_node = nearest_node + (direction / distance) * step
+
+        #check that new_node is a valid config
+        if not sim.is_valid(new_node):
+            continue
+
+        #check there is a valid path from nearest node to new_node
+        if not sim.motion_valid(nearest_node, new_node):
+            continue
+
+        #add new node to tree
+        new_node_id = len(nodes)
+        nodes.append(new_node)
+        parent[new_node_id] = nearest_id #parent is nearest node already in tree
+
+        #check if goal is reached
+        if sim.is_goal(new_node):
+
+            path = []
+            current = new_node_id
+
+            while current is not None: #move through parent dict to get path
+                path.append(nodes[current])
+                current = parent[current]
+
+            return path[::-1] #reverse list so it goes from initial to goal state
+
+    return None
+
+
+def prm_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_file: str = "environment.yaml"):
 
     #initialise
     print("starting clock")
@@ -122,6 +240,7 @@ def my_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_fi
                 new_points += 1
                 
                 #connect configuration to existing vertices in G using valid edges
+                #TODO could connect to k closest neighbours
                 for neighbour_id, potential_connection in enumerate(nodes[:-1]): #exclude the most recent node added to avoid comparison with self
 
                     #check <= 30% distance of workspace between nodes to be connected
@@ -152,5 +271,5 @@ def my_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_fi
 if __name__ == "__main__":
     random.seed(42) #for reproducability in experiments
     sim = initialise(n_drones=2, env_file="environment.yaml")
-    solution_path = my_planner(sim, points_to_add=10)
+    solution_path = rrt_planner(sim, sampler="bridge", time_limit=120)
     sim.visualize_paths(solution_path)

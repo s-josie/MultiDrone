@@ -31,6 +31,6 @@ obstacles:
     
 goals:
   - position: [30, 30, 2] # The 3D position of the first goal
-    radius: 1.0 # The radius of the first goal
+    radius: 10.0 # The radius of the first goal
   - position: [20, 30, 2] # The 3D position of the second goal
-    radius: 1.0 # The radius of the second goal
+    radius: 20.0 # The radius of the second goal
