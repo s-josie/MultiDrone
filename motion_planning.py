@@ -127,15 +127,16 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
 
     while time.time() - start_time < time_limit:
 
-        sample_config, i, prob_i = multi_arm_bandit_sampler(sim, config, max_connection_distance, bandit_weights, nu) #TODO
+        sample_config, i, prob_i = multi_arm_bandit_sampler(sim, config, max_connection_distance, bandit_weights, nu)
 
         if sample_config is None: 
-            reward = 0 #TODO
+            reward = 0 
             bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
 
             continue
 
         #find id of nearest node in existing tree
+        #TODO edit distance calc
         nearest_id = min(range(len(nodes)), key=lambda i: np.linalg.norm(nodes[i] - sample_config))
 
         nearest_node = nodes[nearest_id]
@@ -146,7 +147,7 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
 
         #avoid division by zero
         if distance < 1e-6:
-            reward = 0 #TODO
+            reward = 0
             bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
 
             continue
@@ -159,19 +160,19 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
 
         #check that new_node is a valid config
         if not sim.is_valid(new_node):
-            reward = 0 #TODO
+            reward = 0
             bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
             continue
 
         #check there is a valid path from nearest node to new_node
         if not sim.motion_valid(nearest_node, new_node):
-            reward = 0 #TODO
+            reward = 0
             bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
             continue
 
-        #calculate reward function if node is added TODO , split reward between expanding tree and getting closer to goal
-        #distance_to_goal = max(np.linalg.norm(sample_config - sim.goal_positions, axis=1))
-        reward = 1 #+ distance_to_goal/workspace_diagonal
+        #calculate reward function if node is added
+        #TODO make reward more informative about distance to goal
+        reward = 1
         #update weights
         bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
 
@@ -190,11 +191,11 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
                 path.append(nodes[current])
                 current = parent[current]
 
-            print(time.time()-start_time)
-            return path[::-1] #reverse list so it goes from initial to goal state
+            #print(time.time()-start_time)
+            return path[::-1], time.time()-start_time #TODO edit after testing #reverse list so it goes from initial to goal state
 
-    print(time.time()-start_time)
-    return None
+    #print(time.time()-start_time)
+    return None, None #TODO edit after testing
 
 
 def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: str = "environment.yaml"):
@@ -223,16 +224,14 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
 
     while time.time() - start_time < time_limit:
 
-        sampler = random.choice(["uniform", "bridge", "goal"]) #TODO replace with MAB
-        #sample a configuration according to strategy TODO try changing strategies
+        #sampler = random.choice(["uniform", "bridge", "goal"])
+        #sample a configuration according to strategy
         if sampler == "uniform":
             sample_config = uniform_sampler(config["bounds"], sim.N)
         elif sampler == "bridge":
             sample_config = bridge_sampling(sim, config["bounds"], sim.N, max_connection_distance)
         elif sampler == "goal":
             sample_config = goal_sampler(sim)
-        elif sampler == "mab":
-            sample_config = multi_arm_bandit_sampler(sim)
         else: 
             return ValueError("Need to provide a valid sampling strategy.")
 
@@ -246,7 +245,7 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
 
         #find distance between nearest node and sample_config
         direction = sample_config - nearest_node
-        distance = np.linalg.norm(direction)
+        distance = np.linalg.norm(sample_config - nearest_node)
 
         #avoid division by zero
         if distance < 1e-6:
@@ -395,6 +394,7 @@ def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
 if __name__ == "__main__":
     random.seed(42) #for reproducability in experiments
     sim = initialise(n_drones=2, env_file="environment.yaml")
-    solution_path = rrt_planner_mab(sim, 0.5, 20, env_file="environment.yaml")
+    solution_path, time = rrt_planner_mab(sim, 0.2, 20, env_file="environment.yaml")
     #solution_path = rrt_planner(sim, "uniform")
     sim.visualize_paths(solution_path)
+    print(time)
