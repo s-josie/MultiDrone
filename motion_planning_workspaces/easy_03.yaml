@@ -1,0 +1,34 @@
+bounds:
+  x: [0, 50] # x-bounds
+  y: [0, 50] # y-bounds
+  z: [0, 50] # z-bounds
+
+initial_configuration: [[2, 3, 3], [2, 10, 5], [3, 18, 7], [5, 27, 4], [4, 36, 8]] # Initial 3D positions of all 5 drones
+
+obstacles:
+  - type: box
+    position: [12, 30, 3]
+    size: [6, 5, 6]
+    rotation: [0, 0, 0]
+    color: red
+  - type: cylinder
+    endpoints: [[28, 10, 0], [28, 10, 8]]
+    radius: 2.5
+    rotation: [0, 0, 0]
+    color: red
+  - type: sphere
+    position: [36, 27, 7]
+    radius: 3
+    color: red
+
+goals:
+  - position: [46, 47, 45] # Goal position for drone 1
+    radius: 1.5
+  - position: [43, 40, 42] # Goal position for drone 2
+    radius: 1.5
+  - position: [47, 32, 44] # Goal position for drone 3
+    radius: 1.5
+  - position: [42, 23, 46] # Goal position for drone 4
+    radius: 1.5
+  - position: [46, 14, 40] # Goal position for drone 5
+    radius: 1.5
