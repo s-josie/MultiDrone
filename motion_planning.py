@@ -13,7 +13,6 @@ def initialise(n_drones: int, env_file: str = "environment.yaml"):
 
     return sim
 
-
 #Sampling functions: 
 def uniform_sampler(bounds: dict, n_drones: int):
 
@@ -75,56 +74,126 @@ def bridge_sampling(sim: MultiDrone, bounds:dict, n_drones: int, maximum_connect
         return None
 
 
-"""def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
-
-    return None"""
-
-
 def goal_sampler(sim: MultiDrone):
 
     return sim.goal_positions.copy()
 
-"""def multi_arm_bandit_sampler(sampler_pics: list[bool]):
+def multi_arm_bandit_sampler(sim, config:dict, max_connection_distance: float, bandit_weights: list[float], nu:float = 0.5):
 
-    return point"""
-    
-    
+    #calculate prob dist
+    probs = list(map(lambda x: (1-nu)*(x/sum(bandit_weights))+nu/3, bandit_weights)) #TODO three cause we have three samplers
+
+    print(probs)
+
+    #choose sampler according to prob dist
+    sampler = random.choices(["uniform", "bridge", "goal"], probs)[0]
+
+    if sampler == "uniform":
+        return uniform_sampler(config["bounds"], sim.N), 0, probs[0]
+    elif sampler == "bridge":
+        return bridge_sampling(sim, config["bounds"], sim.N, max_connection_distance), 1, probs[1]
+    else: #sampler == "goal"
+        return goal_sampler(sim), 2, probs[2]
+
+def bandit_weight_update(bandit_weights: list[float], reward: float, sampler_id: int, nu: float, prob_i: float):
+    bandit_weights[sampler_id] = bandit_weights[sampler_id]*np.exp(nu*(reward/prob_i)/3) #div 3 for three sampling methods
+    return None
+
+def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: str = "environment.yaml"):
+
+    # initialise
+    print("starting clock")
+    start_time = time.time()
+    bandit_weights = [1.0, 1.0, 1.0] #uniform, obstacle, goal
+
+    with open(env_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    # Maximum distance that a new node can be from its parent
+    workspace_diagonal = np.linalg.norm(
+        np.array([
+            config["bounds"]["x"][1] - config["bounds"]["x"][0],
+            config["bounds"]["y"][1] - config["bounds"]["y"][0],
+            config["bounds"]["z"][1] - config["bounds"]["z"][0]
+        ])
+    )
+
+    max_connection_distance = 0.3 * workspace_diagonal
+
+    #set the initial configuration as the root node
+    nodes = [sim.initial_configuration.copy()]
+    parent = {0: None}
 
 
+    while time.time() - start_time < time_limit:
 
-#Graph search functions:
-def breadth_first_search(nodes: list, roadmap: list, sim: MultiDrone):
+        sample_config, i, prob_i = multi_arm_bandit_sampler(sim, config, max_connection_distance, bandit_weights, nu) #TODO
 
-    #initialise 
-    queue = deque([0]) #frontier (discoverd but not explored)
-    visited = {0} #set stores visited nodes to prevent looping in path
-    parent = {0: None} #dict that stores {node_id, parent node} to create path
+        if sample_config is None: 
+            reward = 0 #TODO
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
 
-    while queue: #still nodes to explore
+            continue
 
-        current = queue.popleft() #First In First Out for BFS
+        #find id of nearest node in existing tree
+        nearest_id = min(range(len(nodes)), key=lambda i: np.linalg.norm(nodes[i] - sample_config))
 
-        #check whether configuration satisfies the goal
-        if sim.is_goal(nodes[current]):
+        nearest_node = nodes[nearest_id]
 
-            #reconstruct path
+        #find distance between nearest node and sample_config
+        direction = sample_config - nearest_node
+        distance = np.linalg.norm(direction)
+
+        #avoid division by zero
+        if distance < 1e-6:
+            reward = 0 #TODO
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+
+            continue
+
+        #limit the extension to max_connection_distance
+        step = min(distance, max_connection_distance)
+
+        new_node = nearest_node + (direction / distance) * step
+
+
+        #check that new_node is a valid config
+        if not sim.is_valid(new_node):
+            reward = 0 #TODO
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+            continue
+
+        #check there is a valid path from nearest node to new_node
+        if not sim.motion_valid(nearest_node, new_node):
+            reward = 0 #TODO
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+            continue
+
+        #calculate reward function if node is added TODO , split reward between expanding tree and getting closer to goal
+        #distance_to_goal = max(np.linalg.norm(sample_config - sim.goal_positions, axis=1))
+        reward = 1 #+ distance_to_goal/workspace_diagonal
+        #update weights
+        bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+
+        #add new node to tree
+        new_node_id = len(nodes)
+        nodes.append(new_node)
+        parent[new_node_id] = nearest_id #parent is nearest node already in tree
+
+        #check if goal is reached
+        if sim.is_goal(new_node):
+
             path = []
-            node = current
+            current = new_node_id
 
-            while node is not None:
-                path.append(nodes[node]) #add corresponding configuration to path
-                node = parent[node] #update node to move up path
+            while current is not None: #move through parent dict to get path
+                path.append(nodes[current])
+                current = parent[current]
 
-            return path[::-1] #reverses path to go from initial to goal state
+            print(time.time()-start_time)
+            return path[::-1] #reverse list so it goes from initial to goal state
 
-        #expand neighbours
-        for neighbour in roadmap[current]:
-
-            if neighbour not in visited: #don't expand same node again to avoid loops
-                visited.add(neighbour) 
-                parent[neighbour] = current #record parent for neighbour
-                queue.append(neighbour) #add to queue
-
+    print(time.time()-start_time)
     return None
 
 
@@ -154,6 +223,7 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
 
     while time.time() - start_time < time_limit:
 
+        sampler = random.choice(["uniform", "bridge", "goal"]) #TODO replace with MAB
         #sample a configuration according to strategy TODO try changing strategies
         if sampler == "uniform":
             sample_config = uniform_sampler(config["bounds"], sim.N)
@@ -161,6 +231,8 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
             sample_config = bridge_sampling(sim, config["bounds"], sim.N, max_connection_distance)
         elif sampler == "goal":
             sample_config = goal_sampler(sim)
+        elif sampler == "mab":
+            sample_config = multi_arm_bandit_sampler(sim)
         else: 
             return ValueError("Need to provide a valid sampling strategy.")
 
@@ -208,7 +280,46 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
                 path.append(nodes[current])
                 current = parent[current]
 
+            print(time.time()-start_time)
             return path[::-1] #reverse list so it goes from initial to goal state
+
+    return None
+
+
+
+"""
+#Graph search functions:
+def breadth_first_search(nodes: list, roadmap: list, sim: MultiDrone):
+
+    #initialise 
+    queue = deque([0]) #frontier (discoverd but not explored)
+    visited = {0} #set stores visited nodes to prevent looping in path
+    parent = {0: None} #dict that stores {node_id, parent node} to create path
+
+    while queue: #still nodes to explore
+
+        current = queue.popleft() #First In First Out for BFS
+
+        #check whether configuration satisfies the goal
+        if sim.is_goal(nodes[current]):
+
+            #reconstruct path
+            path = []
+            node = current
+
+            while node is not None:
+                path.append(nodes[node]) #add corresponding configuration to path
+                node = parent[node] #update node to move up path
+
+            return path[::-1] #reverses path to go from initial to goal state
+
+        #expand neighbours
+        for neighbour in roadmap[current]:
+
+            if neighbour not in visited: #don't expand same node again to avoid loops
+                visited.add(neighbour) 
+                parent[neighbour] = current #record parent for neighbour
+                queue.append(neighbour) #add to queue
 
     return None
 
@@ -272,7 +383,11 @@ def prm_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_f
     print("time up!")
     return None
 
+def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
 
+    return None
+
+"""
 
 
 
@@ -280,5 +395,6 @@ def prm_planner(sim: MultiDrone, points_to_add: int, time_limit: int = 20, env_f
 if __name__ == "__main__":
     random.seed(42) #for reproducability in experiments
     sim = initialise(n_drones=2, env_file="environment.yaml")
-    solution_path = rrt_planner(sim, sampler="bridge", time_limit=120)
+    solution_path = rrt_planner_mab(sim, 0.5, 20, env_file="environment.yaml")
+    #solution_path = rrt_planner(sim, "uniform")
     sim.visualize_paths(solution_path)
