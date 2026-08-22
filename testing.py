@@ -7,7 +7,7 @@ from pathlib import Path
 import pandas as pd
 import scipy
 
-def test(nu_values: list[float], env_path_list: list[str], time_limit: int, filename: str, save_dir: str = "results"):
+def test(nu_values: list[float], env_path_list: list[str], time_limit: int, filename: str, save_dir: str = "results", workspace_dist_percent: float = 0.3):
 
     os.makedirs(save_dir, exist_ok=True)
 
@@ -24,7 +24,7 @@ def test(nu_values: list[float], env_path_list: list[str], time_limit: int, file
                 print(f"invalid env + {env}")
                 return ValueError("Invalid Environment")
             
-            plan, solve_time = rrt_planner_mab_for_testing(sim, nu, time_limit, env_file=env)
+            plan, solve_time = rrt_planner_mab_for_testing(sim, nu, time_limit, env_file=env, workspace_dist_percent = workspace_dist_percent)
 
             difficulty = (Path(env).stem).split("_")[0]
 
@@ -125,14 +125,24 @@ if __name__ == "__main__":
 
 
     #using best nu value, test 15 envs, 1-5 num drones, 60 sec limit
-    #env_path_list = [str(p) for p in list((Path("motion_planning_workspaces").rglob("*.yaml")))] #get list of all test envs
+    env_path_list = [str(p) for p in list((Path("motion_planning_workspaces").rglob("*.yaml")))] #get list of all test envs
     #print(env_path_list)
     #test([best_nu], env_path_list, time_limit= 20, filename= "eval_w_best_nu.csv")
 
+    
 
     #now analyse performance across difficulty settings
-    analysis("results/eval_w_best_nu.csv", "Difficulty", "difficulty_analysis.csv")
+    #analysis("results/eval_w_best_nu.csv", "Difficulty", "difficulty_analysis.csv")
 
     #analyse scalability
-    analysis("results/eval_w_best_nu.csv", "Number of Drones", "scalability_analysis.csv")
+    #analysis("results/eval_w_best_nu.csv", "Number of Drones", "scalability_analysis.csv")
+
+
+
+
+    #test for smaller workspace dist: 
+    #test([best_nu], env_path_list, time_limit= 20, filename= "eval_w_best_nu_15%workspace.csv", workspace_dist_percent=0.15)
+    analysis("results/eval_w_best_nu_15%workspace.csv", "Difficulty", "difficulty_analysis_15%_workspace.csv")
+    analysis("results/eval_w_best_nu_15%workspace.csv", "Number of Drones", "scalability_analysis_15%_workspace.csv")
     print("done")
+

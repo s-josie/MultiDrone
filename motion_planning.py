@@ -118,7 +118,7 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
         ])
     )
 
-    max_connection_distance = 0.3 * workspace_diagonal
+    max_connection_distance = 0.2 * workspace_diagonal
 
     #set the initial configuration as the root node
     nodes = [sim.initial_configuration.copy()]
@@ -200,7 +200,7 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
 
 
 
-def rrt_planner_mab_for_testing(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: str = "environment.yaml"):
+def rrt_planner_mab_for_testing(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: str = "environment.yaml", workspace_dist_percent: float = 0.3):
 
     # initialise
     print("starting clock")
@@ -219,7 +219,7 @@ def rrt_planner_mab_for_testing(sim: MultiDrone, nu: float, time_limit: int = 20
         ])
     )
 
-    max_connection_distance = 0.3 * workspace_diagonal
+    max_connection_distance = workspace_dist_percent * workspace_diagonal
 
     #set the initial configuration as the root node
     nodes = [sim.initial_configuration.copy()]
