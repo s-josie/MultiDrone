@@ -293,10 +293,10 @@ def rrt_planner_mab_for_testing(sim: MultiDrone, nu: float, time_limit: int = 20
                 current = parent[current]
 
             #print(time.time()-start_time)
-            return path[::-1], time.time()-start_time #TODO edit after testing #reverse list so it goes from initial to goal state
+            return path[::-1], time.time()-start_time #reverse list so it goes from initial to goal state
 
     #print(time.time()-start_time)
-    return None, np.nan #TODO edit after testing
+    return None, np.nan 
 
 
 
