@@ -3,7 +3,7 @@ bounds:
   y: [0, 50] # y-bounds
   z: [0, 50] # z-bounds
 
-initial_configuration: [[2, 2, 3], [2, 47, 3], [12, 2, 3], [12, 47, 3], [20, 25, 3]]
+initial_configuration: [[0.5, 2, 3], [2, 47, 3], [11, 2, 3], [12, 47, 3], [20, 25, 3]]
 
 obstacles:
   - type: box
@@ -82,7 +82,7 @@ goals:
     radius: 1.5
   - position: [34, 48, 3]
     radius: 1.5
-  - position: [34, 4, 3]
+  - position: [34, 44, 3]
     radius: 1.5
   - position: [25, 48, 3]
     radius: 1.5
