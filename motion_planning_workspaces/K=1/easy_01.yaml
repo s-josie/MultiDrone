@@ -5,7 +5,7 @@ bounds:
 
 initial_configuration: [[2, 3, 3]] # Initial 3D positions of all 5 drones
 
-obstacles:
+obstacles: []
 
 goals:
   - position: [46, 47, 45] # Goal position for drone 1

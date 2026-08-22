@@ -1,5 +1,5 @@
 Difficulty,Environment Path,Number of Drones,Exploration Constant,Solved (y/n),Solve Time
-easy,motion_planning_workspaces/easy_01.yaml,5,0.2,True,0.06649112701416016
-easy,motion_planning_workspaces/easy_01.yaml,5,0.3,True,0.03877401351928711
-medium,motion_planning_workspaces/medium_02.yaml,5,0.2,True,0.051757097244262695
-medium,motion_planning_workspaces/medium_02.yaml,5,0.3,True,0.0622410774230957
+easy,motion_planning_workspaces/K=1/easy_01.yaml,1,0.2,True,0.0177152156829834
+easy,motion_planning_workspaces/K=1/easy_01.yaml,1,0.3,True,0.030063867568969727
+medium,motion_planning_workspaces/K=2/medium_02.yaml,2,0.2,True,0.04005098342895508
+medium,motion_planning_workspaces/K=2/medium_02.yaml,2,0.3,True,0.061659812927246094

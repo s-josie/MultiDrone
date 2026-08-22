@@ -83,7 +83,7 @@ def multi_arm_bandit_sampler(sim, config:dict, max_connection_distance: float, b
     #calculate prob dist
     probs = list(map(lambda x: (1-nu)*(x/sum(bandit_weights))+nu/3, bandit_weights)) #TODO three cause we have three samplers
 
-    print(probs)
+    #print(probs)
 
     #choose sampler according to prob dist
     sampler = random.choices(["uniform", "bridge", "goal"], probs)[0]
@@ -192,10 +192,112 @@ def rrt_planner_mab(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: 
                 current = parent[current]
 
             #print(time.time()-start_time)
+            return path[::-1] #reverse list so it goes from initial to goal state
+
+    #print(time.time()-start_time)
+    return None
+
+
+
+
+def rrt_planner_mab_for_testing(sim: MultiDrone, nu: float, time_limit: int = 20, env_file: str = "environment.yaml"):
+
+    # initialise
+    print("starting clock")
+    start_time = time.time()
+    bandit_weights = [1.0, 1.0, 1.0] #uniform, obstacle, goal
+
+    with open(env_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    # Maximum distance that a new node can be from its parent
+    workspace_diagonal = np.linalg.norm(
+        np.array([
+            config["bounds"]["x"][1] - config["bounds"]["x"][0],
+            config["bounds"]["y"][1] - config["bounds"]["y"][0],
+            config["bounds"]["z"][1] - config["bounds"]["z"][0]
+        ])
+    )
+
+    max_connection_distance = 0.3 * workspace_diagonal
+
+    #set the initial configuration as the root node
+    nodes = [sim.initial_configuration.copy()]
+    parent = {0: None}
+
+
+    while time.time() - start_time < time_limit:
+
+        sample_config, i, prob_i = multi_arm_bandit_sampler(sim, config, max_connection_distance, bandit_weights, nu)
+
+        if sample_config is None: 
+            reward = 0 
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+
+            continue
+
+        #find id of nearest node in existing tree
+        #TODO edit distance calc
+        nearest_id = min(range(len(nodes)), key=lambda i: np.linalg.norm(nodes[i] - sample_config))
+
+        nearest_node = nodes[nearest_id]
+
+        #find distance between nearest node and sample_config
+        direction = sample_config - nearest_node
+        distance = np.linalg.norm(direction)
+
+        #avoid division by zero
+        if distance < 1e-6:
+            reward = 0
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+
+            continue
+
+        #limit the extension to max_connection_distance
+        step = min(distance, max_connection_distance)
+
+        new_node = nearest_node + (direction / distance) * step
+
+
+        #check that new_node is a valid config
+        if not sim.is_valid(new_node):
+            reward = 0
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+            continue
+
+        #check there is a valid path from nearest node to new_node
+        if not sim.motion_valid(nearest_node, new_node):
+            reward = 0
+            bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+            continue
+
+        #calculate reward function if node is added
+        #TODO make reward more informative about distance to goal
+        reward = 1
+        #update weights
+        bandit_weight_update(bandit_weights, reward, i, nu, prob_i)
+
+        #add new node to tree
+        new_node_id = len(nodes)
+        nodes.append(new_node)
+        parent[new_node_id] = nearest_id #parent is nearest node already in tree
+
+        #check if goal is reached
+        if sim.is_goal(new_node):
+
+            path = []
+            current = new_node_id
+
+            while current is not None: #move through parent dict to get path
+                path.append(nodes[current])
+                current = parent[current]
+
+            #print(time.time()-start_time)
             return path[::-1], time.time()-start_time #TODO edit after testing #reverse list so it goes from initial to goal state
 
     #print(time.time()-start_time)
-    return None, None #TODO edit after testing
+    return None, np.nan #TODO edit after testing
+
 
 
 def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: str = "environment.yaml"):
@@ -279,7 +381,7 @@ def rrt_planner(sim: MultiDrone, sampler: str, time_limit: int = 20, env_file: s
                 path.append(nodes[current])
                 current = parent[current]
 
-            print(time.time()-start_time)
+            #print(time.time()-start_time)
             return path[::-1] #reverse list so it goes from initial to goal state
 
     return None
