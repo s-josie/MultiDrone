@@ -1,4 +1,4 @@
-from motion_planning import rrt_planner_mab, initialise
+from motion_planning import rrt_planner_mab_for_testing, initialise
 import random
 import csv
 import numpy as np
@@ -6,17 +6,6 @@ import os
 from pathlib import Path
 import pandas as pd
 import scipy
-
-
-
-
-#want 15 problems (5 easy, 5 medium, 5 hard according to epsilon, alpha, beta criteria (calculate the values and provide them))
-#bounds are fixed
-#for each problem, provide different sets of initial and goal states such that I can test the same problem with K in [1,5] drones
-
-#for each problem, # drones combo record the solving time (limit 1 min) or None if no solution found
-
-#average across each difficulty level to get mean and 95% confidence interval
 
 def test(nu_values: list[float], env_path_list: list[str], time_limit: int, filename: str, save_dir: str = "results"):
 
@@ -35,7 +24,7 @@ def test(nu_values: list[float], env_path_list: list[str], time_limit: int, file
                 print(f"invalid env + {env}")
                 return ValueError("Invalid Environment")
             
-            plan, solve_time = rrt_planner_mab(sim, nu, time_limit, env_file=env)
+            plan, solve_time = rrt_planner_mab_for_testing(sim, nu, time_limit, env_file=env)
 
             difficulty = (Path(env).stem).split("_")[0]
 
@@ -80,7 +69,7 @@ def summarise_nu(csv_path: str, filename: str, save_dir: str = "results"):
     return None
 
 
-def confidence_interval(x): #TODO add types
+def confidence_interval(x: pd.Series):
 
     x = x.dropna() #shouldn't be any but just in case
 
