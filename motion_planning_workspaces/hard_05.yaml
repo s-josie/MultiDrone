@@ -3,7 +3,7 @@ bounds:
   y: [0, 50] # y-bounds
   z: [0, 50] # z-bounds
 
-initial_configuration: [[2, 3, 3], [2, 10, 5], [3, 18, 7], [5, 27, 4], [4, 36, 8]] # Initial 3D positions of all 5 drones
+initial_configuration: [[2, 2, 3], [2, 47, 3], [12, 2, 3], [12, 47, 3], [20, 25, 3]]
 
 obstacles:
   - type: box
@@ -46,11 +46,16 @@ obstacles:
     size: [13, 6, 14]
     rotation: [0, 0, 0]
     color: red
-  - type: cylinder
-    endpoints: [[27, 27, 0], [27, 27, 48]]
-    radius: 4
+
+  # Full-height central barrier. The only passage from the left/lower
+  # region to the right/upper goal region is a narrow 2 m-wide bridge
+  # through the gap at y=46..48.
+  - type: box
+    position: [27, 10, 0]
+    size: [3, 36, 50]
     rotation: [0, 0, 0]
     color: red
+
   - type: cylinder
     endpoints: [[15, 44, 0], [15, 44, 36]]
     radius: 3.5
@@ -71,13 +76,13 @@ obstacles:
     color: red
 
 goals:
-  - position: [46, 47, 45] # Goal position for drone 1
+  - position: [48, 48, 3]
     radius: 1.5
-  - position: [43, 40, 42] # Goal position for drone 2
+  - position: [48, 4, 3]
     radius: 1.5
-  - position: [47, 32, 44] # Goal position for drone 3
+  - position: [34, 48, 3]
     radius: 1.5
-  - position: [42, 23, 46] # Goal position for drone 4
+  - position: [34, 4, 3]
     radius: 1.5
-  - position: [46, 14, 40] # Goal position for drone 5
+  - position: [25, 48, 3]
     radius: 1.5

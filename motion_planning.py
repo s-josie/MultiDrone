@@ -394,9 +394,11 @@ def expansive_space_sampler(maximum_connection_dist: float, config: dict): #TODO
 if __name__ == "__main__":
     random.seed(42) #for reproducability in experiments
 
-    env_file = "motion_planning_workspaces/hard_05.yaml"
+    env_file = "motion_planning_workspaces/hard_05.yaml" #hard_02=invalid, hard_04=invalid, hard_05 =invalid
     sim = initialise(n_drones=5, env_file=env_file)
-    solution_path, time = rrt_planner_mab(sim, 0.3, 20, env_file=env_file)
+    print(sim.is_valid(sim.initial_configuration))
+
+    #solution_path, time = rrt_planner_mab(sim, 0.3, 20, env_file=env_file)
     #solution_path = rrt_planner(sim, "uniform")
-    sim.visualize_paths(solution_path)
-    print(time)
+    #sim.visualize_paths(solution_path)
+    #print(time)

@@ -1,54 +1,144 @@
 bounds:
-  x: [0, 50] # x-bounds
-  y: [0, 50] # y-bounds
-  z: [0, 50] # z-bounds
-
-initial_configuration: [[2, 3, 3], [2, 10, 5], [3, 18, 7], [5, 27, 4], [4, 36, 8]] # Initial 3D positions of all 5 drones
-
+  x:
+  - 0
+  - 50
+  y:
+  - 0
+  - 50
+  z:
+  - 0
+  - 50
+initial_configuration:
+- - 1
+  - 1
+  - 1
+- - 1
+  - 3
+  - 24
+- - 2
+  - 30
+  - 7
+- - 2
+  - 30
+  - 24
+- - 3
+  - 36
+  - 8
 obstacles:
-  - type: box
-    position: [5, 10, 10]
-    size: [6, 30, 20]
-    rotation: [0, 0, 0]
-    color: red
-  - type: box
-    position: [13, 5, 30]
-    size: [20, 6, 30]
-    rotation: [0, 0, 0]
-    color: red
-  - type: box
-    position: [28, 12, 7]
-    size: [6, 28, 14]
-    rotation: [0, 0, 0]
-    color: red
-  - type: box
-    position: [35, 5, 29]
-    size: [10, 6, 30]
-    rotation: [0, 0, 0]
-    color: red
-  - type: box
-    position: [41, 18, 8]
-    size: [5, 24, 16]
-    rotation: [0, 0, 0]
-    color: red
-  - type: box
-    position: [20, 39, 12]
-    size: [22, 5, 24]
-    rotation: [0, 0, 0]
-    color: red
-  - type: sphere
-    position: [27, 27, 25]
-    radius: 4
-    color: red
-
+- type: box
+  position:
+  - 5
+  - 10
+  - 10
+  size:
+  - 6
+  - 30
+  - 20
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: box
+  position:
+  - 13
+  - 5
+  - 30
+  size:
+  - 20
+  - 6
+  - 30
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: box
+  position:
+  - 28
+  - 12
+  - 7
+  size:
+  - 6
+  - 28
+  - 14
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: box
+  position:
+  - 35
+  - 5
+  - 29
+  size:
+  - 10
+  - 6
+  - 30
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: box
+  position:
+  - 41
+  - 18
+  - 8
+  size:
+  - 5
+  - 24
+  - 16
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: box
+  position:
+  - 20
+  - 39
+  - 12
+  size:
+  - 22
+  - 5
+  - 24
+  rotation:
+  - 0
+  - 0
+  - 0
+  color: red
+- type: sphere
+  position:
+  - 27
+  - 27
+  - 25
+  radius: 4
+  color: red
 goals:
-  - position: [46, 47, 45] # Goal position for drone 1
-    radius: 1.5
-  - position: [43, 40, 42] # Goal position for drone 2
-    radius: 1.5
-  - position: [47, 32, 44] # Goal position for drone 3
-    radius: 1.5
-  - position: [42, 23, 46] # Goal position for drone 4
-    radius: 1.5
-  - position: [46, 14, 40] # Goal position for drone 5
-    radius: 1.5
+- position:
+  - 46
+  - 47
+  - 45
+  radius: 1.5
+- position:
+  - 43
+  - 40
+  - 42
+  radius: 1.5
+- position:
+  - 47
+  - 32
+  - 44
+  radius: 1.5
+- position:
+  - 42
+  - 23
+  - 46
+  radius: 1.5
+- position:
+  - 46
+  - 14
+  - 40
+  radius: 1.5
