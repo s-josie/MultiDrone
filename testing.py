@@ -80,19 +80,28 @@ def summarise_nu(csv_path: str, filename: str, save_dir: str = "results"):
     return None
 
 
+def confidence_interval(x): #TODO add types
+
+    x = x.dropna() #shouldn't be any but just in case
+
+    time_mean = np.mean(x)
+    sample_size = len(x)
+    sample_std = np.std(x) 
+    standard_error = sample_std / np.sqrt(sample_size)
+
+    lower, upper = scipy.stats.norm.interval(confidence=0.95, loc=time_mean, scale=standard_error)
+
+    return [float(f"{lower:.3g}"), float(f"{upper:.3g}")]
+
 def analysis(csv_path: str, group_col: str, filename: str, save_dir: str = "results"):
 
     df = pd.read_csv(csv_path) #read in experiment data
 
-
     #calculate Confidence Interval by group_col
-    successful_tests = df[df["Solved (T/F)"] == True]["Solve Time"] #df with only rows with successful tests, then take only time col
+    successful_tests = df[df["Solved (T/F)"] == True] #df with only rows with successful tests, then take only time col
 
-
-    time_mean = np.mean(successful_tests)
-    sample_size = len(successful_tests)
-    sample_std = np.std(successful_tests) 
-    standard_error = sample_std / np.sqrt(sample_size)
+    confidence_int_table = (successful_tests.groupby(group_col)["Solve Time"]
+        .apply(confidence_interval).reset_index(name="95% Confidence Interval"))
 
     summary = (
         df.groupby(group_col).agg( #group by number of drones to see scalability
@@ -100,8 +109,10 @@ def analysis(csv_path: str, group_col: str, filename: str, save_dir: str = "resu
             success_percentage = ("Solved (T/F)", lambda x: (x == True).mean() * 100), #get mean solve percentage
             mean_solve_time = ("Solve Time", "mean"),
             median_solve_time = ("Solve Time", "median"),
-            IQR_solve_time = ("Solve Time", lambda x: x.quantile(0.75) - x.quantile(0.25)),
-            Confience_Interval_95 = ("95% Confidence Interval", scipy.stats.norm.interval(confidence=0.95, loc=time_mean, scale=standard_error))).reset_index())
+            IQR_solve_time = ("Solve Time", lambda x: x.quantile(0.75) - x.quantile(0.25))).reset_index())
+
+    #combine summary and confidence interval tables
+    summary = summary.merge(confidence_int_table, how= "left", on = group_col)
 
     #sort by highest success rate first, then lowest median solve time
     summary = summary.sort_values([group_col], ascending=True)
